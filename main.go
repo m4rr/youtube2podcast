@@ -4,22 +4,26 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"time"
 
-	"github.com/SlyMarbo/rss"
 	"github.com/eduncan911/podcast"
+	rss "github.com/m4rr/yt-rss"
 )
 
 func main() {
 
-	// feed, err := rss.Fetch("https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw")
 	dat, err1 := ioutil.ReadFile("rss.yt.xml")
-
 	feed, err2 := rss.Parse(dat)
-
 	if err1 != nil || err2 != nil {
-		fmt.Println(err1.Error(), err1.Error())
+		// fmt.Println(err1.Error(), err2.Error())
 	}
+
+	// feed, err2 := rss.Fetch("https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw")
+	// if err2 != nil {
+	// 	fmt.Println("err 2", err2.Error())
+	// }
+
 	now := time.Now()
 
 	p := podcast.New(feed.Title, feed.Link, feed.Description, &now, &feed.Refresh)
@@ -27,15 +31,21 @@ func main() {
 
 	// pItems := make([]*podcast.Item, 0, len(feed.Items))
 
-	for _, ep := range feed.Items {
-		item := new(podcast.Item)
+	for _, ytEpisode := range feed.Items {
+		itcItem := new(podcast.Item)
 
-		item.Title = ep.Title
-		item.Link = ep.Link
-		item.Description = ep.Desc
-		item.PubDate = &ep.Date
+		itcItem.Title = ytEpisode.Title
+		itcItem.Link = ytEpisode.Link
+		itcItem.Description = ytEpisode.Desc
+		itcItem.PubDate = &ytEpisode.Date
 
-		_, err := p.AddItem(*item)
+		author := podcast.Author{}
+		author.Name = feed.Title
+		itcItem.Author = &author
+
+		itcItem.Comments = strconv.Itoa(ytEpisode.Views) + " Views"
+
+		_, err := p.AddItem(*itcItem)
 		fmt.Println(err)
 	}
 
