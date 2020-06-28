@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/eduncan911/podcast v1.4.2
+	github.com/jinzhu/gorm v1.9.14
 	github.com/m4rr/yt-rss v1.0.6
 )
 
