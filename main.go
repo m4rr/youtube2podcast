@@ -1,22 +1,32 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/eduncan911/podcast"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	rss "github.com/m4rr/yt-rss"
 )
 
+var episodes []itcEpisode
+
 func main() {
 
-	dat, err1 := ioutil.ReadFile("rss.yt.xml")
-	feed, err2 := rss.Parse(dat)
-	if err1 != nil || err2 != nil {
-		// fmt.Println(err1.Error(), err2.Error())
+	db, dbErr := gorm.Open("sqlite3", "./sqlite3.db")
+	defer db.Close()
+	if dbErr != nil {
+		log.Fatal(dbErr)
+	}
+
+	dat, readErr := ioutil.ReadFile("rss.yt.xml")
+	feed, parsErr := rss.Parse(dat)
+	if readErr != nil || parsErr != nil {
+		fmt.Println(readErr.Error(), parsErr.Error())
 	}
 
 	// feed, err2 := rss.Fetch("https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw")
@@ -35,9 +45,14 @@ func main() {
 		itcItem := new(podcast.Item)
 
 		itcItem.Title = ytEpisode.Title
+		itcItem.PubDate = &ytEpisode.Date
+
 		itcItem.Link = ytEpisode.Link
 		itcItem.Description = ytEpisode.Desc
-		itcItem.PubDate = &ytEpisode.Date
+
+		if len(ytEpisode.Desc) == 0 {
+			itcItem.Description = "<No Shownotes>"
+		}
 
 		author := podcast.Author{}
 		author.Name = feed.Title
@@ -45,13 +60,33 @@ func main() {
 
 		itcItem.Comments = strconv.Itoa(ytEpisode.Views) + " Views"
 
-		_, err := p.AddItem(*itcItem)
-		fmt.Println(err)
+		_, addErr := p.AddItem(*itcItem)
+		if addErr != nil {
+			fmt.Println(addErr)
+		}
+
+		episodes = append(episodes, itcEpisode{gorm.Model{}, *itcItem})
 	}
 
-	var buf bytes.Buffer
-	err3 := p.Encode(&buf)
-	res := buf.String() // s == "Size: 85 MB."
-	fmt.Println(res, err3)
+	writErr := ioutil.WriteFile("rss.ktotoneprav.xml", p.Bytes(), 0644)
+	if writErr != nil {
+		log.Fatal(writErr)
+	}
 
+	itcPodc := itcPodcast{gorm.Model{}, p, episodes}
+
+	db.AutoMigrate(&itcEpisode{}, &itcPodcast{})
+	db.Create(&itcPodc)
+
+}
+
+type itcPodcast struct {
+	gorm.Model
+	podcast.Podcast
+	episodes []itcEpisode
+}
+
+type itcEpisode struct {
+	gorm.Model
+	podcast.Item
 }
