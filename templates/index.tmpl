@@ -1,0 +1,15 @@
+<html>
+	<h1>
+		{{ .Title }}
+	</h1>
+
+	<ul>
+		{{ range .TheEpisodes }}
+		<li>
+			{{ .Title }}
+			<br>
+			{{ .YtLink }}
+		</li>
+		{{ end }}
+	</ul>
+</html>
