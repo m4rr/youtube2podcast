@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/eduncan911/podcast"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	rss "github.com/m4rr/yt-rss"
@@ -27,16 +29,17 @@ type TheCategory struct {
 }
 
 type ThePodcast struct {
-	gorm.Model
+	// gorm.Model
 
-	// YtID           string `xml:"id"`
+	ID          uint   `gorm:"AUTO_INCREMENT"`
+	YtID        string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
+	TheEpisodes []TheEpisode
+
 	Title          string    `xml:"title"`
 	Link           string    `xml:"link"`
 	AuthorName     string    `xml:"author.name"`
 	FirstPublished time.Time `xml:"published"`
 	Description    string
-
-	TheEpisodes []TheEpisode
 
 	Lang        string
 	TheCategory []TheCategory
@@ -44,12 +47,13 @@ type ThePodcast struct {
 }
 
 type TheEpisode struct {
-	gorm.Model
+	// gorm.Model
 
-	ThePodcast   ThePodcast
-	ThePodcastID uint
+	ID             uint   `gorm:"AUTO_INCREMENT"`
+	YtID           string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
+	ThePodcast     ThePodcast
+	ThePodcastYtID string
 
-	YtID           string    `xml:"id"`
 	VideoID        string    `xml:"videoId"`
 	ChannelID      string    `xml:"channelId"`
 	Title          string    `xml:"title"`
@@ -63,8 +67,11 @@ type TheEpisode struct {
 	Views          int       `xml:"community.statistics"`
 }
 
-func parseYtRss(feed *rss.Feed) (thePod ThePodcast) {
+func parseYtRss(feed *rss.Feed) ThePodcast {
 
+	thePod := ThePodcast{}
+
+	thePod.YtID = feed.ID
 	thePod.Lang = "ru-RU"
 	thePod.Title = feed.Title
 	thePod.Link = feed.Link
@@ -74,13 +81,16 @@ func parseYtRss(feed *rss.Feed) (thePod ThePodcast) {
 
 	for _, ytEpisode := range feed.Items {
 		theEp := TheEpisode{}
+
+		theEp.YtID = ytEpisode.ID
 		theEp.Title = ytEpisode.Title
 		theEp.Published = ytEpisode.Date
 		theEp.YtLink = ytEpisode.Link
 
-		theEp.Description = ytEpisode.Desc
 		if len(ytEpisode.Desc) == 0 {
 			theEp.Description = "<No Shownotes>"
+		} else {
+			theEp.Description = ytEpisode.Desc
 		}
 
 		author := TheAuthor{}
@@ -89,27 +99,29 @@ func parseYtRss(feed *rss.Feed) (thePod ThePodcast) {
 
 		theEp.Views = ytEpisode.Views
 
+		theEp.ThePodcastYtID = thePod.YtID
 		theEps = append(theEps, theEp)
 	}
 
 	thePod.TheEpisodes = theEps
 	thePod.Cached = time.Now()
 
-	return
+	return thePod
 }
 
-func itcPodcastFrom(thePod *ThePodcast) (p podcast.Podcast) {
+func itcPodcastFrom(thePod *ThePodcast) podcast.Podcast {
 
-	p = podcast.New(thePod.Title, thePod.Link, thePod.Description, &thePod.FirstPublished, &thePod.UpdatedAt)
+	p := podcast.New(thePod.Title, thePod.Link, thePod.Description, &thePod.FirstPublished, &thePod.Cached)
+
+	p.IAuthor = thePod.Title //AuthorName
 	p.Language = "ru-RU"
-
-	// pItems := make([]*podcast.Item, 0, len(feed.Items))
+	p.IExplicit = "true"
 
 	for _, ytEpisode := range thePod.TheEpisodes {
 		itcItem := new(podcast.Item)
 
 		itcItem.Title = ytEpisode.Title
-		itcItem.PubDate = &ytEpisode.ThePodcast.Cached
+		itcItem.PubDate = &ytEpisode.Published
 
 		itcItem.Link = ytEpisode.YtLink
 		itcItem.Description = ytEpisode.Description
@@ -126,7 +138,27 @@ func itcPodcastFrom(thePod *ThePodcast) (p podcast.Podcast) {
 		}
 	}
 
-	return
+	return p
+}
+
+func writeItunesPodcastRssXML(itcPodcast podcast.Podcast) {
+
+	writErr := ioutil.WriteFile("rss.itc.generated.xml", itcPodcast.Bytes(), 0644)
+	if writErr != nil {
+		log.Fatal(writErr)
+	}
+}
+
+func runWebServer(tehPod ThePodcast) {
+
+	r := gin.Default()
+	r.LoadHTMLGlob("templates/*")
+	//router.LoadHTMLFiles("templates/template1.html", "templates/template2.html")
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.tmpl", tehPod)
+	})
+	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+
 }
 
 func main() {
@@ -154,17 +186,14 @@ func main() {
 	}
 
 	thePod := parseYtRss(feed)
-
 	db.Create(&thePod)
 
 	var thePod2 ThePodcast
-
 	db.Preload("TheEpisodes").Last(&thePod2)
 
 	itcPodcast := itcPodcastFrom(&thePod2)
+	writeItunesPodcastRssXML(itcPodcast)
 
-	writErr := ioutil.WriteFile("rss.itc.generated.xml", itcPodcast.Bytes(), 0644)
-	if writErr != nil {
-		log.Fatal(writErr)
-	}
+	runWebServer(thePod2)
+
 }
