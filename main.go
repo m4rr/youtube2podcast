@@ -90,14 +90,7 @@ func parseYtRss(feed *rss.Feed) (thePod ThePodcast) {
 		theEp.Views = ytEpisode.Views
 
 		theEps = append(theEps, theEp)
-
-		// db.Create(&theEp)
 	}
-
-	// writErr := ioutil.WriteFile("rss.ktotoneprav.xml", p.Bytes(), 0644)
-	// if writErr != nil {
-	// 	log.Fatal(writErr)
-	// }
 
 	thePod.TheEpisodes = theEps
 	thePod.Cached = time.Now()
@@ -164,53 +157,14 @@ func main() {
 
 	db.Create(&thePod)
 
-	itcPodcast := itcPodcastFrom(&thePod)
+	var thePod2 ThePodcast
+
+	db.Preload("TheEpisodes").Last(&thePod2)
+
+	itcPodcast := itcPodcastFrom(&thePod2)
 
 	writErr := ioutil.WriteFile("rss.itc.generated.xml", itcPodcast.Bytes(), 0644)
 	if writErr != nil {
 		log.Fatal(writErr)
 	}
-
 }
-
-/* make itc xml
-
-
-p := podcast.New(feed.Title, feed.Link, feed.Description, &now, &feed.Refresh)
-p.Language = "ru-RU"
-
-// pItems := make([]*podcast.Item, 0, len(feed.Items))
-
-for _, ytEpisode := range feed.Items {
-	itcItem := new(podcast.Item)
-
-	itcItem.Title = ytEpisode.Title
-	itcItem.PubDate = &ytEpisode.Date
-
-	itcItem.Link = ytEpisode.Link
-	itcItem.Description = ytEpisode.Desc
-
-	if len(ytEpisode.Desc) == 0 {
-		itcItem.Description = "<No Shownotes>"
-	}
-
-	author := podcast.Author{}
-	author.Name = feed.Title
-	itcItem.Author = &author
-
-	itcItem.Comments = strconv.Itoa(ytEpisode.Views) + " Views"
-
-	_, addErr := p.AddItem(*itcItem)
-	if addErr != nil {
-		fmt.Println(addErr)
-	}
-
-	episodes = append(episodes, itcEpisode{gorm.Model{}, *itcItem})
-}
-
-writErr := ioutil.WriteFile("rss.ktotoneprav.xml", p.Bytes(), 0644)
-if writErr != nil {
-	log.Fatal(writErr)
-}
-
-*/
