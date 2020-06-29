@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -49,8 +50,8 @@ type ThePodcast struct {
 type TheEpisode struct {
 	// gorm.Model
 
-	ID             uint   `gorm:"AUTO_INCREMENT"`
-	YtID           string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
+	ID             uint   `gorm:"PRIMARY_KEY;AUTO_INCREMENT"`
+	YtID           string `gorm:"UNIQUE_INDEX;NOT_NULL"`
 	ThePodcast     ThePodcast
 	ThePodcastYtID string
 
@@ -153,7 +154,7 @@ func runWebServer(tehPod ThePodcast) {
 
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
-	//router.LoadHTMLFiles("templates/template1.html", "templates/template2.html")
+	//r.LoadHTMLFiles("templates/template1.html", "templates/template2.html")
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", tehPod)
 	})
@@ -190,6 +191,7 @@ func main() {
 
 	var thePod2 ThePodcast
 	db.Preload("TheEpisodes").Last(&thePod2)
+	sort.Sort(ByID(thePod2.TheEpisodes))
 
 	itcPodcast := itcPodcastFrom(&thePod2)
 	writeItunesPodcastRssXML(itcPodcast)
@@ -197,3 +199,9 @@ func main() {
 	runWebServer(thePod2)
 
 }
+
+type ByID []TheEpisode
+
+func (a ByID) Len() int           { return len(a) }
+func (a ByID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByID) Less(i, j int) bool { return a[i].ID < a[j].ID }
