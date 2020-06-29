@@ -1,0 +1,17 @@
+//gin
+type User struct {
+ ID             int    `gorm:"PRIMARY_KEY"`
+ Hubs           []Hub       `json:"-"`
+}
+
+type Hub struct {
+ ID                int    `gorm:"PRIMARY_KEY"`
+ User              User `json:"-"`
+}
+
+Вот 
+r := gin.New()
+r.GET("/", func(c *gin.Context) {
+  c.Redirect(http.StatusMovedPermanently, "/user/ui")
+  c.Abort()
+})
