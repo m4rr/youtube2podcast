@@ -1,7 +1,4 @@
-# ktotoneprav-podsync
+# youtube2podcast
 
-## deploy
+[WIP] A self-hosted RSS publisher of your own YT channel to your own iTunes Podcast. Inspired by (RIP) FeedBurner.
 
-```sh
-$ ./deploy.sh
-```
