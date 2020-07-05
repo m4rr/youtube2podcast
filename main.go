@@ -28,7 +28,7 @@ type Category struct {
 
 	ID   uint   `gorm:"primary_key,auto_increment"`
 	Name string `gorm:"unique;not_null"`
-	// ThePodcast []*ThePodcast
+	// Podcasts []*Podcast `gorm:"many2many:podcast_categories;"`
 	// ThePodcastYtID string
 }
 
@@ -37,8 +37,8 @@ type Episode struct {
 
 	ID          uint   `gorm:"PRIMARY_KEY;AUTO_INCREMENT"`
 	YtID        string `gorm:"UNIQUE_INDEX;NOT_NULL"`
-	Podcast     Podcast
 	PodcastYtID string
+	Podcast     Podcast
 
 	VideoID        string    `xml:"videoId"`
 	ChannelID      string    `xml:"channelId"`
@@ -81,14 +81,22 @@ func parseYtRss(feed *rss.Feed) Podcast {
 	thePod.Link = feed.Link
 	thePod.AuthorName = feed.Nickname
 
-	cats := []Category{}
-	db.Find(&cats).Limit(2)
-	cats2 := []*Category{}
+	// cats := []*Category{}
+	// db.Find(&cats).Limit(2)
+	// cats2 := []*Category{}
+	// for _, cat := range cats {
+	// cat.ThePodcastYtID = thePod.YtID
+	// cats2 = append(cats2, &cat)
+	// }
+
+	cats := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
+	cats3 := []*Category{}
 	for _, cat := range cats {
-		// cat.ThePodcastYtID = thePod.YtID
-		cats2 = append(cats2, &cat)
+		tehCat := Category{}
+		tehCat.Name = cat
+		cats3 = append(cats3, &tehCat)
 	}
-	thePod.Categories = cats2
+	thePod.Categories = cats3
 
 	theEps := []Episode{}
 
@@ -200,12 +208,6 @@ func main() {
 
 	thePod := parseYtRss(feed)
 
-	cats := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
-	for _, cat := range cats {
-		tehCat := Category{}
-		tehCat.Name = cat
-		db.Create(&tehCat)
-	}
 
 	db.Create(&thePod)
 

@@ -1,0 +1,41 @@
+<link xmlns:atom10="http://www.w3.org/2005/Atom" rel="self" type="application/rss+xml" href="http://feeds.feedburner.com/ktotoneprav" />
+<info xmlns:feedburner="http://rssnamespace.org/feedburner/ext/1.0" uri="ktotoneprav" />
+<link xmlns:atom10="http://www.w3.org/2005/Atom" rel="hub" href="http://pubsubhubbub.appspot.com/" />
+<copyright>
+	m4rr, 2020
+</copyright>
+<thumbnail url="https://m4rr.ru/images/chronicles_cover.jpg" />
+<keywords>
+	society,technology,news,culture,travel
+</keywords>
+<category scheme="http://www.itunes.com/dtds/podcast-1.0.dtd">
+	Society &amp; Culture/Personal Journals
+</category>
+<category scheme="http://www.itunes.com/dtds/podcast-1.0.dtd">
+	Technology/Tech News
+</category>
+<owner>
+	<email>
+		remarr@gmail.com
+	</email>
+	<name>
+		Marat Saytakov
+	</name>
+</owner>
+<explicit>
+	no
+</explicit>
+<subtitle>
+	Хроники мира/Гоа (Кто-то неправ)
+</subtitle>
+<summary>
+	Назвал свой видеоподкаст в интернете «Кто-то неправ». Рассказываю то, что знаю, и приглашаю друзей.
+</summary>
+<category text="Society &amp; Culture">
+	<category text="Personal Journals" />
+</category>
+<category text="Technology">
+	<category text="Tech News" />
+</category>
+<item>
+</item>
