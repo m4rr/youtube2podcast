@@ -8,20 +8,18 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
-var db *gorm.DB
-
 func main() {
 
-	db, _ = gorm.Open("sqlite3", "./sqlite3.db")
+	db, dbErr := gorm.Open("sqlite3", "./sqlite3.db")
 	defer db.Close()
 	// db = db.Debug()
-	// if dbErr != nil {
-	// 	log.Fatal(dbErr)
-	// }
+	if dbErr != nil {
+		log.Fatal(dbErr)
+	}
 
 	feed, parsErr := readRSS(nil)
 	if parsErr != nil {
-		log.Fatal(parsErr)
+		log.Fatal(parsErr.Error())
 	}
 
 	db.AutoMigrate(&Author{}, &Episode{}, &Category{}, &Podcast{})
@@ -34,7 +32,10 @@ func main() {
 	sort.Sort(ByID(thePod2.Episodes))
 
 	itcPodcast := itcPodcastFrom(&thePod2)
-	writeItunesPodcastRssXML(itcPodcast)
+	writErr := writeItunesPodcastRssXML(itcPodcast)
+	if writErr != nil {
+		log.Fatal(writErr)
+	}
 
 	runWebServer(thePod2)
 }
