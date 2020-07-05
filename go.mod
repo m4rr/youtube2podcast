@@ -1,4 +1,4 @@
-module github.com/m4rr/ktotoneprav-podsync
+module github.com/m4rr/youtube2podcast
 
 go 1.14
 
