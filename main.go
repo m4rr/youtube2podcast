@@ -16,35 +16,35 @@ import (
 	rss "github.com/m4rr/yt-rss"
 )
 
-type TheAuthor struct {
+type Author struct {
 	gorm.Model
 
 	Name string
 	Link string
 }
 
-type TheCategory struct {
+type Category struct {
 	// gorm.Model
 
-	ID         uint   `gorm:"primary_key,auto_increment"`
-	Name       string `gorm:"unique;not_null"`
-	ThePodcast []*ThePodcast
+	ID   uint   `gorm:"primary_key,auto_increment"`
+	Name string `gorm:"unique;not_null"`
+	// ThePodcast []*ThePodcast
 	// ThePodcastYtID string
 }
 
-type TheEpisode struct {
+type Episode struct {
 	// gorm.Model
 
-	ID             uint   `gorm:"PRIMARY_KEY;AUTO_INCREMENT"`
-	YtID           string `gorm:"UNIQUE_INDEX;NOT_NULL"`
-	ThePodcast     ThePodcast
-	ThePodcastYtID string
+	ID          uint   `gorm:"PRIMARY_KEY;AUTO_INCREMENT"`
+	YtID        string `gorm:"UNIQUE_INDEX;NOT_NULL"`
+	Podcast     Podcast
+	PodcastYtID string
 
 	VideoID        string    `xml:"videoId"`
 	ChannelID      string    `xml:"channelId"`
 	Title          string    `xml:"title"`
 	YtLink         string    `xml:"link,href,attr"`
-	Author         TheAuthor `xml:"author"`
+	Author         Author    `xml:"author"`
 	Published      time.Time `xml:"published"`
 	Updated        string    `xml:"updated"`
 	CoverImageLink string    `xml:"group.thumbnail.url"`
@@ -53,13 +53,13 @@ type TheEpisode struct {
 	Views          int       `xml:"community.statistics"`
 }
 
-type ThePodcast struct {
+type Podcast struct {
 	// gorm.Model
 
-	ID            uint   `gorm:"AUTO_INCREMENT"`
-	YtID          string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
-	TheEpisodes   []TheEpisode
-	TheCategories []*TheCategory
+	ID         uint   `gorm:"AUTO_INCREMENT"`
+	YtID       string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
+	Episodes   []Episode
+	Categories []*Category `gorm:"many2many:podcast_categories;"`
 
 	Title          string    `xml:"title"`
 	Link           string    `xml:"link"`
@@ -71,9 +71,9 @@ type ThePodcast struct {
 	Cached time.Time
 }
 
-func parseYtRss(feed *rss.Feed) ThePodcast {
+func parseYtRss(feed *rss.Feed) Podcast {
 
-	thePod := ThePodcast{}
+	thePod := Podcast{}
 
 	thePod.YtID = feed.ID
 	thePod.Lang = "ru-RU"
@@ -81,19 +81,19 @@ func parseYtRss(feed *rss.Feed) ThePodcast {
 	thePod.Link = feed.Link
 	thePod.AuthorName = feed.Nickname
 
-	cats := []TheCategory{}
+	cats := []Category{}
 	db.Find(&cats).Limit(2)
-	cats2 := []TheCategory{}
+	cats2 := []*Category{}
 	for _, cat := range cats {
-		cat.ThePodcastYtID = thePod.YtID
-		cats2 = append(cats2, cat)
+		// cat.ThePodcastYtID = thePod.YtID
+		cats2 = append(cats2, &cat)
 	}
-	thePod.TheCategories = cats2
+	thePod.Categories = cats2
 
-	theEps := []TheEpisode{}
+	theEps := []Episode{}
 
 	for _, ytEpisode := range feed.Items {
-		theEp := TheEpisode{}
+		theEp := Episode{}
 
 		theEp.YtID = ytEpisode.ID
 		theEp.Title = ytEpisode.Title
@@ -106,23 +106,23 @@ func parseYtRss(feed *rss.Feed) ThePodcast {
 			theEp.Description = ytEpisode.Desc
 		}
 
-		author := TheAuthor{}
+		author := Author{}
 		author.Name = ytEpisode.Author
 		theEp.Author = author
 
 		theEp.Views = ytEpisode.Views
 
-		theEp.ThePodcastYtID = thePod.YtID
+		theEp.PodcastYtID = thePod.YtID
 		theEps = append(theEps, theEp)
 	}
 
-	thePod.TheEpisodes = theEps
+	thePod.Episodes = theEps
 	thePod.Cached = time.Now()
 
 	return thePod
 }
 
-func itcPodcastFrom(thePod *ThePodcast) podcast.Podcast {
+func itcPodcastFrom(thePod *Podcast) podcast.Podcast {
 
 	p := podcast.New(thePod.Title, thePod.Link, thePod.Description, &thePod.FirstPublished, &thePod.Cached)
 
@@ -130,7 +130,7 @@ func itcPodcastFrom(thePod *ThePodcast) podcast.Podcast {
 	p.Language = "ru-RU"
 	p.IExplicit = "true"
 
-	for _, ytEpisode := range thePod.TheEpisodes {
+	for _, ytEpisode := range thePod.Episodes {
 		itcItem := new(podcast.Item)
 
 		itcItem.Title = ytEpisode.Title
@@ -162,7 +162,7 @@ func writeItunesPodcastRssXML(itcPodcast podcast.Podcast) {
 	}
 }
 
-func runWebServer(tehPod ThePodcast) {
+func runWebServer(tehPod Podcast) {
 
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
@@ -185,9 +185,9 @@ func main() {
 	// 	log.Fatal(dbErr)
 	// }
 
-	db.AutoMigrate(&TheAuthor{}, &TheEpisode{}, &TheCategory{}, &ThePodcast{})
+	db.AutoMigrate(&Author{}, &Episode{}, &Category{}, &Podcast{})
 
-	dat, readErr := ioutil.ReadFile("rss.yt.original.xml")
+	dat, readErr := ioutil.ReadFile("rss.yt.orig.xml")
 	feed, parsErr := rss.Parse(dat)
 	if readErr != nil || parsErr != nil {
 		fmt.Println(readErr.Error(), parsErr.Error())
@@ -202,16 +202,16 @@ func main() {
 
 	cats := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
 	for _, cat := range cats {
-		tehCat := TheCategory{}
+		tehCat := Category{}
 		tehCat.Name = cat
 		db.Create(&tehCat)
 	}
 
 	db.Create(&thePod)
 
-	var thePod2 ThePodcast
-	db.Preload("TheEpisodes").Preload("TheCategories").Last(&thePod2)
-	sort.Sort(ByID(thePod2.TheEpisodes))
+	var thePod2 Podcast
+	db.Preload("Episodes").Preload("Categories").Last(&thePod2)
+	sort.Sort(ByID(thePod2.Episodes))
 
 	itcPodcast := itcPodcastFrom(&thePod2)
 	writeItunesPodcastRssXML(itcPodcast)
@@ -221,7 +221,7 @@ func main() {
 
 }
 
-type ByID []TheEpisode
+type ByID []Episode
 
 func (a ByID) Len() int           { return len(a) }
 func (a ByID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
