@@ -26,13 +26,13 @@ func readRSS(url *string) (feed *rss.Feed, parsErr error) {
 
 func parseYtRss(feed *rss.Feed) Podcast {
 
-	thePod := Podcast{}
+	tehPod := Podcast{}
 
-	thePod.YtID = feed.ID
-	thePod.Lang = "ru-RU"
-	thePod.Title = feed.Title
-	thePod.Link = feed.Link
-	thePod.AuthorName = feed.Nickname
+	tehPod.YtID = feed.ID
+	tehPod.Lang = "ru-RU"
+	tehPod.Title = feed.Title
+	tehPod.Link = feed.Link
+	tehPod.AuthorName = feed.Nickname
 
 	cats := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
 	cats3 := []*Category{}
@@ -41,48 +41,48 @@ func parseYtRss(feed *rss.Feed) Podcast {
 		tehCat.Name = cat
 		cats3 = append(cats3, &tehCat)
 	}
-	thePod.Categories = cats3
+	tehPod.Categories = cats3
 
-	theEps := []Episode{}
+	tehEps := []Episode{}
 	for _, ytEpisode := range feed.Items {
-		theEp := Episode{}
+		tehEp := Episode{}
 
-		theEp.YtID = ytEpisode.ID
-		theEp.Title = ytEpisode.Title
-		theEp.Published = ytEpisode.Date
-		theEp.YtLink = ytEpisode.Link
+		tehEp.YtID = ytEpisode.ID
+		tehEp.Title = ytEpisode.Title
+		tehEp.Published = ytEpisode.Date
+		tehEp.YtLink = ytEpisode.Link
 
 		if len(ytEpisode.Desc) == 0 {
-			theEp.Description = "<No Shownotes>"
+			tehEp.Description = "<No Shownotes>"
 		} else {
-			theEp.Description = ytEpisode.Desc
+			tehEp.Description = ytEpisode.Desc
 		}
 
 		author := Author{}
 		author.Name = ytEpisode.Author
-		theEp.Author = author
+		tehEp.Author = author
 
-		theEp.Views = ytEpisode.Views
+		tehEp.Views = ytEpisode.Views
 
-		theEp.PodcastYtID = thePod.YtID
-		theEps = append(theEps, theEp)
+		tehEp.PodcastYtID = tehPod.YtID
+		tehEps = append(tehEps, tehEp)
 	}
 
-	thePod.Episodes = theEps
-	thePod.Cached = time.Now()
+	tehPod.Episodes = tehEps
+	tehPod.Cached = time.Now()
 
-	return thePod
+	return tehPod
 }
 
-func itcPodcastFrom(thePod *Podcast) podcast.Podcast {
+func itcPodcastFrom(tehPod *Podcast) podcast.Podcast {
 
-	p := podcast.New(thePod.Title, thePod.Link, thePod.Description, &thePod.FirstPublished, &thePod.Cached)
+	p := podcast.New(tehPod.Title, tehPod.Link, tehPod.Description, &tehPod.FirstPublished, &tehPod.Cached)
 
-	p.IAuthor = thePod.Title //AuthorName
+	p.IAuthor = tehPod.Title //AuthorName
 	p.Language = "ru-RU"
 	p.IExplicit = "true"
 
-	for _, ytEpisode := range thePod.Episodes {
+	for _, ytEpisode := range tehPod.Episodes {
 		itcItem := new(podcast.Item)
 
 		itcItem.Title = ytEpisode.Title
@@ -92,7 +92,7 @@ func itcPodcastFrom(thePod *Podcast) podcast.Podcast {
 		itcItem.Description = ytEpisode.Description
 
 		author := podcast.Author{}
-		author.Name = thePod.AuthorName
+		author.Name = tehPod.AuthorName
 		itcItem.Author = &author
 
 		itcItem.Comments = strconv.Itoa(ytEpisode.Views) + " Views"
