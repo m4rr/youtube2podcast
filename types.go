@@ -62,6 +62,7 @@ type Podcast struct {
 	Cached time.Time
 }
 
+// sort.Sort(ByID(selectedPod.Episodes))
 type ByID []Episode
 
 func (a ByID) Len() int           { return len(a) }

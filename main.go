@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"sort"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
