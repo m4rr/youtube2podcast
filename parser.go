@@ -24,14 +24,16 @@ func readRSS(url *string) (feed *rss.Feed, parsErr error) {
 	return rss.Fetch(*url) //"https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw"
 }
 
-func parseYtRss(ytFeed *rss.Feed) (pod Podcast) {
+func parseYtRss(ytFeed *rss.Feed) (p Podcast) {
 
-	pod.YtID = ytFeed.ID
-	pod.Lang = "ru-RU"
-	pod.Title = ytFeed.Title
-	pod.Link = ytFeed.Link
-	pod.AuthorName = ytFeed.Nickname
+	p.YtID = ytFeed.ID
+	p.Lang = "ru-RU"
+	p.Title = ytFeed.Title
+	p.Link = ytFeed.Link
+	p.AuthorName = ytFeed.Nickname
+	p.Cached = time.Now()
 
+	// Add categories
 	catStrings := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
 	categories := []*Category{}
 	for _, cat := range catStrings {
@@ -39,8 +41,9 @@ func parseYtRss(ytFeed *rss.Feed) (pod Podcast) {
 		tehCat.Name = cat
 		categories = append(categories, &tehCat)
 	}
-	pod.Categories = categories
+	p.Categories = categories
 
+	// Add episodes
 	episodes := []Episode{}
 	for _, ytEp := range ytFeed.Items {
 
@@ -64,46 +67,44 @@ func parseYtRss(ytFeed *rss.Feed) (pod Podcast) {
 
 		ep.Views = ytEp.Views
 
-		ep.PodcastYtID = pod.YtID
+		ep.PodcastYtID = p.YtID
 		episodes = append(episodes, ep)
 	}
+	p.Episodes = episodes
 
-	pod.Episodes = episodes
-	pod.Cached = time.Now()
-
-	return 
+	return
 }
 
-func itcPodcastFrom(tehPod *Podcast) podcast.Podcast {
+func itcPodcastFrom(p *Podcast) podcast.Podcast {
 
-	p := podcast.New(tehPod.Title, tehPod.Link, tehPod.Description, &tehPod.FirstPublished, &tehPod.Cached)
+	itcPod := podcast.New(p.Title, p.Link, p.Description, &p.FirstPublished, &p.Cached)
 
-	p.IAuthor = tehPod.Title //AuthorName
-	p.Language = "ru-RU"
-	p.IExplicit = "true"
+	itcPod.IAuthor = p.Title //AuthorName
+	itcPod.Language = "ru-RU"
+	itcPod.IExplicit = "false"
 
-	for _, ytEpisode := range tehPod.Episodes {
+	for _, ep := range p.Episodes {
 		itcItem := new(podcast.Item)
 
-		itcItem.Title = ytEpisode.Title
-		itcItem.PubDate = &ytEpisode.Published
+		itcItem.Title = ep.Title
+		itcItem.PubDate = &ep.Published
 
-		itcItem.Link = ytEpisode.YtLink
-		itcItem.Description = ytEpisode.Description
+		itcItem.Link = ep.YtLink
+		itcItem.Description = ep.Description
 
 		author := podcast.Author{}
-		author.Name = tehPod.AuthorName
+		author.Name = p.AuthorName
 		itcItem.Author = &author
 
-		itcItem.Comments = strconv.Itoa(ytEpisode.Views) + " Views"
+		itcItem.Comments = strconv.Itoa(ep.Views) + " Views"
 
-		_, addErr := p.AddItem(*itcItem)
+		_, addErr := itcPod.AddItem(*itcItem)
 		if addErr != nil {
 			log.Fatal(addErr)
 		}
 	}
 
-	return p
+	return itcPod
 }
 
 func writeItunesPodcastRssXML(itcPodcast podcast.Podcast) error {

@@ -24,18 +24,19 @@ func main() {
 
 	db.AutoMigrate(&Author{}, &Episode{}, &Category{}, &Podcast{})
 
-	tehPod := parseYtRss(feed)
-	db.Create(&tehPod)
+	parsedPod := parseYtRss(feed)
+	db.Create(&parsedPod)
 
-	var tehPod2 Podcast
-	db.Preload("Episodes").Preload("Categories").Last(&tehPod2)
-	sort.Sort(ByID(tehPod2.Episodes))
+	var selectedPod Podcast
+	db.Preload("Episodes", func(db *gorm.DB) *gorm.DB {
+		return db.Order("id ASC")
+	}).Preload("Categories").Last(&selectedPod)
 
-	itcPodcast := itcPodcastFrom(&tehPod2)
-	writErr := writeItunesPodcastRssXML(itcPodcast)
+	itcPod := itcPodcastFrom(&selectedPod)
+	writErr := writeItunesPodcastRssXML(itcPod)
 	if writErr != nil {
 		log.Fatal(writErr)
 	}
 
-	runWebServer(tehPod2)
+	runWebServer(selectedPod)
 }
