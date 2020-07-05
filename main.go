@@ -24,27 +24,12 @@ type TheAuthor struct {
 }
 
 type TheCategory struct {
-	gorm.Model
-
-	Name string
-}
-
-type ThePodcast struct {
 	// gorm.Model
 
-	ID          uint   `gorm:"AUTO_INCREMENT"`
-	YtID        string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
-	TheEpisodes []TheEpisode
-
-	Title          string    `xml:"title"`
-	Link           string    `xml:"link"`
-	AuthorName     string    `xml:"author.name"`
-	FirstPublished time.Time `xml:"published"`
-	Description    string
-
-	Lang        string
-	TheCategory []TheCategory
-	Cached      time.Time
+	ID         uint   `gorm:"primary_key,auto_increment"`
+	Name       string `gorm:"unique;not_null"`
+	ThePodcast []*ThePodcast
+	// ThePodcastYtID string
 }
 
 type TheEpisode struct {
@@ -68,6 +53,24 @@ type TheEpisode struct {
 	Views          int       `xml:"community.statistics"`
 }
 
+type ThePodcast struct {
+	// gorm.Model
+
+	ID            uint   `gorm:"AUTO_INCREMENT"`
+	YtID          string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
+	TheEpisodes   []TheEpisode
+	TheCategories []*TheCategory
+
+	Title          string    `xml:"title"`
+	Link           string    `xml:"link"`
+	AuthorName     string    `xml:"author.name"`
+	FirstPublished time.Time `xml:"published"`
+	Description    string
+
+	Lang   string
+	Cached time.Time
+}
+
 func parseYtRss(feed *rss.Feed) ThePodcast {
 
 	thePod := ThePodcast{}
@@ -77,6 +80,15 @@ func parseYtRss(feed *rss.Feed) ThePodcast {
 	thePod.Title = feed.Title
 	thePod.Link = feed.Link
 	thePod.AuthorName = feed.Nickname
+
+	cats := []TheCategory{}
+	db.Find(&cats).Limit(2)
+	cats2 := []TheCategory{}
+	for _, cat := range cats {
+		cat.ThePodcastYtID = thePod.YtID
+		cats2 = append(cats2, cat)
+	}
+	thePod.TheCategories = cats2
 
 	theEps := []TheEpisode{}
 
@@ -144,7 +156,7 @@ func itcPodcastFrom(thePod *ThePodcast) podcast.Podcast {
 
 func writeItunesPodcastRssXML(itcPodcast podcast.Podcast) {
 
-	writErr := ioutil.WriteFile("rss.itc.generated.xml", itcPodcast.Bytes(), 0644)
+	writErr := ioutil.WriteFile("rss.itc.gen.xml", itcPodcast.Bytes(), 0644)
 	if writErr != nil {
 		log.Fatal(writErr)
 	}
@@ -162,41 +174,50 @@ func runWebServer(tehPod ThePodcast) {
 
 }
 
+var db *gorm.DB
+
 func main() {
 
-	db, dbErr := gorm.Open("sqlite3", "./sqlite3.db")
-	db = db.Debug()
+	db, _ = gorm.Open("sqlite3", "./sqlite3.db")
 	defer db.Close()
-	if dbErr != nil {
-		log.Fatal(dbErr)
-	}
+	// db = db.Debug()
+	// if dbErr != nil {
+	// 	log.Fatal(dbErr)
+	// }
 
-	db.AutoMigrate(&TheAuthor{}, &TheEpisode{}, &ThePodcast{})
+	db.AutoMigrate(&TheAuthor{}, &TheEpisode{}, &TheCategory{}, &ThePodcast{})
 
-	// p := podcast.Item{}
-
-	dat, readErr := ioutil.ReadFile("rss.yt.xml")
+	dat, readErr := ioutil.ReadFile("rss.yt.original.xml")
 	feed, parsErr := rss.Parse(dat)
 	if readErr != nil || parsErr != nil {
 		fmt.Println(readErr.Error(), parsErr.Error())
 	}
 
-	feed, err2 := rss.Fetch("https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw")
-	if err2 != nil {
-		fmt.Println("err 2", err2.Error())
-	}
+	// feed, err2 := rss.Fetch("https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw")
+	// if err2 != nil {
+	// 	fmt.Println("err 2", err2.Error())
+	// }
 
 	thePod := parseYtRss(feed)
+
+	cats := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
+	for _, cat := range cats {
+		tehCat := TheCategory{}
+		tehCat.Name = cat
+		db.Create(&tehCat)
+	}
+
 	db.Create(&thePod)
 
 	var thePod2 ThePodcast
-	db.Preload("TheEpisodes").Last(&thePod2)
+	db.Preload("TheEpisodes").Preload("TheCategories").Last(&thePod2)
 	sort.Sort(ByID(thePod2.TheEpisodes))
 
 	itcPodcast := itcPodcastFrom(&thePod2)
 	writeItunesPodcastRssXML(itcPodcast)
 
-	runWebServer(thePod2)
+	// runWebServer(thePod2)
+	writeItunesPodcastRssXML(itcPodcast)
 
 }
 
