@@ -2,12 +2,36 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/eduncan911/podcast"
 	rss "github.com/m4rr/yt-rss"
 )
+
+func readRSS(url *string) (feed *rss.Feed, parsErr error) {
+
+	if url == nil {
+		data, readErr := ioutil.ReadFile("rsss/rss.yt.orig.xml")
+		if readErr != nil {
+			log.Fatal(readErr.Error())
+		}
+
+		feed, parsErr = rss.Parse(data)
+		if parsErr != nil {
+			log.Fatal(parsErr.Error())
+		}
+	} else {
+		feed, parsErr = rss.Fetch(*url) //"https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw"
+		if parsErr != nil {
+			log.Fatal(parsErr.Error())
+		}
+	}
+
+	return
+}
 
 func parseYtRss(feed *rss.Feed) Podcast {
 
@@ -89,4 +113,13 @@ func itcPodcastFrom(thePod *Podcast) podcast.Podcast {
 	}
 
 	return p
+}
+
+func writeItunesPodcastRssXML(itcPodcast podcast.Podcast) {
+
+	writErr := ioutil.WriteFile("rsss/rss.itc.gen.xml", itcPodcast.Bytes(), 0644)
+	if writErr != nil {
+		log.Fatal(writErr)
+	}
+
 }
