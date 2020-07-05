@@ -24,54 +24,54 @@ func readRSS(url *string) (feed *rss.Feed, parsErr error) {
 	return rss.Fetch(*url) //"https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw"
 }
 
-func parseYtRss(feed *rss.Feed) Podcast {
+func parseYtRss(ytFeed *rss.Feed) (pod Podcast) {
 
-	tehPod := Podcast{}
+	pod.YtID = ytFeed.ID
+	pod.Lang = "ru-RU"
+	pod.Title = ytFeed.Title
+	pod.Link = ytFeed.Link
+	pod.AuthorName = ytFeed.Nickname
 
-	tehPod.YtID = feed.ID
-	tehPod.Lang = "ru-RU"
-	tehPod.Title = feed.Title
-	tehPod.Link = feed.Link
-	tehPod.AuthorName = feed.Nickname
-
-	cats := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
-	cats3 := []*Category{}
-	for _, cat := range cats {
+	catStrings := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
+	categories := []*Category{}
+	for _, cat := range catStrings {
 		tehCat := Category{}
 		tehCat.Name = cat
-		cats3 = append(cats3, &tehCat)
+		categories = append(categories, &tehCat)
 	}
-	tehPod.Categories = cats3
+	pod.Categories = categories
 
-	tehEps := []Episode{}
-	for _, ytEpisode := range feed.Items {
-		tehEp := Episode{}
+	episodes := []Episode{}
+	for _, ytEp := range ytFeed.Items {
 
-		tehEp.YtID = ytEpisode.ID
-		tehEp.Title = ytEpisode.Title
-		tehEp.Published = ytEpisode.Date
-		tehEp.YtLink = ytEpisode.Link
+		ep := Episode{}
 
-		if len(ytEpisode.Desc) == 0 {
-			tehEp.Description = "<No Shownotes>"
+		ep.YtID = ytEp.ID
+		ep.Title = ytEp.Title
+		ep.Published = ytEp.Date
+		ep.YtLink = ytEp.Link
+
+		if len(ytEp.Desc) == 0 {
+			ep.Description = "<No Shownotes>"
 		} else {
-			tehEp.Description = ytEpisode.Desc
+			ep.Description = ytEp.Desc
 		}
 
 		author := Author{}
-		author.Name = ytEpisode.Author
-		tehEp.Author = author
+		author.Name = ytEp.Author
 
-		tehEp.Views = ytEpisode.Views
+		ep.Author = author
 
-		tehEp.PodcastYtID = tehPod.YtID
-		tehEps = append(tehEps, tehEp)
+		ep.Views = ytEp.Views
+
+		ep.PodcastYtID = pod.YtID
+		episodes = append(episodes, ep)
 	}
 
-	tehPod.Episodes = tehEps
-	tehPod.Cached = time.Now()
+	pod.Episodes = episodes
+	pod.Cached = time.Now()
 
-	return tehPod
+	return 
 }
 
 func itcPodcastFrom(tehPod *Podcast) podcast.Podcast {
