@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/eduncan911/podcast"
@@ -34,14 +35,14 @@ func parseYtRss(ytFeed *rss.Feed) (p Podcast) {
 	p.Cached = time.Now()
 
 	// Add categories
-	catStrings := []string{"Society &amp; Culture/Personal Journals", "Technology/Tech News"}
-	categories := []*Category{}
-	for _, cat := range catStrings {
-		tehCat := Category{}
-		tehCat.Name = cat
-		categories = append(categories, &tehCat)
-	}
-	p.Categories = categories
+	// catStrings := []string{"Society & Culture/Personal Journals", "Technology/Tech News"}
+	// categories := []Category{}
+	// for _, cat := range catStrings {
+	// 	tehCat := Category{}
+	// 	tehCat.Name = cat
+	// 	categories = append(categories, &tehCat)
+	// }
+	// p.Categories = categories
 
 	// Add episodes
 	episodes := []Episode{}
@@ -50,6 +51,8 @@ func parseYtRss(ytFeed *rss.Feed) (p Podcast) {
 		ep := Episode{}
 
 		ep.YtID = ytEp.ID
+		// ep.ChannelID = ytFeed.
+
 		ep.Title = ytEp.Title
 		ep.Published = ytEp.Date
 		ep.YtLink = ytEp.Link
@@ -109,4 +112,94 @@ func itcPodcastFrom(p *Podcast) podcast.Podcast {
 
 func writeItunesPodcastRssXML(itcPodcast podcast.Podcast) error {
 	return ioutil.WriteFile("rsss/rss.itc.gen.xml", itcPodcast.Bytes(), 0644)
+}
+
+func fillCategories() []Category {
+	categories := []Category{}
+	lastSuper := ""
+	for _, cat := range categoriesList() {
+		tehCat := Category{}
+
+		if strings.HasPrefix(cat, "-") {
+			lastSuper = strings.TrimPrefix(cat, "-")
+			tehCat.Name = lastSuper
+		} else {
+			tehCat.Name = lastSuper + "/" + cat
+		}
+
+		categories = append(categories, tehCat)
+	}
+	return categories
+}
+
+func categoriesList() []string {
+	return []string{
+		"-Arts",
+		"Design",
+		"Fashion & Beauty",
+		"Food",
+		"Literature",
+		"Performing Arts",
+		"Visual Arts",
+		"-Business",
+		"Business News",
+		"Careers",
+		"Investing",
+		"Management & Marketing",
+		"Shopping",
+		"-Comedy",
+		"-Education",
+		"Education Technology",
+		"Higher Education",
+		"K-12",
+		"Language Courses",
+		"Training",
+		"-Games & Hobbies",
+		"Automotive",
+		"Aviation",
+		"Hobbies",
+		"Other Games",
+		"Video Games",
+		"-Government & Organizations",
+		"Local",
+		"National",
+		"Non-Profit",
+		"Regional",
+		"-Health",
+		"Alternative Health",
+		"Fitness & Nutrition",
+		"Self-Help",
+		"Sexuality",
+		"-Kids & Family",
+		"-Music",
+		"-News & Politics",
+		"-Religion & Spirituality",
+		"Buddhism",
+		"Christianity",
+		"Hinduism",
+		"Islam",
+		"Judaism",
+		"Other",
+		"Spirituality",
+		"-Science & Medicine",
+		"Medicine",
+		"Natural Sciences",
+		"Social Sciences",
+		"-Society & Culture",
+		"History",
+		"Personal Journals",
+		"Philosophy",
+		"Places & Travel",
+		"-Sports & Recreation",
+		"Amateur",
+		"College & High School",
+		"Outdoor",
+		"Professional",
+		"-Technology",
+		"Gadgets",
+		"Podcasting",
+		"Software How-To",
+		"Tech News",
+		"-TV & Film",
+	}
 }

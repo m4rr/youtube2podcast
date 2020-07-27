@@ -23,6 +23,12 @@ func main() {
 
 	db.AutoMigrate(&Author{}, &Episode{}, &Category{}, &Podcast{})
 
+	for _, cat := range fillCategories() {
+		if db.NewRecord(cat) {
+			db.Create(&cat)
+		}
+	}
+
 	parsedPod := parseYtRss(feed)
 	db.Create(&parsedPod)
 

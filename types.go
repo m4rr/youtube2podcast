@@ -17,10 +17,10 @@ type Author struct {
 type Category struct {
 	// gorm.Model
 
-	ID          uint       `gorm:"primary_key,auto_increment"`
-	Name        string     `gorm:"unique;not_null"`
-	Podcasts    []*Podcast `gorm:"many2many:podcast_categories;"`
-	PodcastYtID string
+	ID   uint   `gorm:"primary_key,auto_increment"`
+	Name string `gorm:"unique;not_null"`
+	// Podcasts    []*Podcast `gorm:"many2many:podcast_categories;"`
+	// PodcastYtID string
 }
 
 type Episode struct {
@@ -50,7 +50,7 @@ type Podcast struct {
 	ID         uint   `gorm:"AUTO_INCREMENT"`
 	YtID       string `gorm:"PRIMARY_KEY;UNIQUE_INDEX;NOT_NULL"`
 	Episodes   []Episode
-	Categories []*Category `gorm:"many2many:podcast_categories;"`
+	Categories []Category `gorm:"many2many:podcast_categories;"`
 
 	Title          string    `xml:"title"`
 	Link           string    `xml:"link"`
