@@ -16,7 +16,8 @@ func main() {
 		log.Fatal(dbErr)
 	}
 
-	feed, parsErr := readRSS(nil)
+	ktotonepravURL := "https://www.youtube.com/feeds/videos.xml?channel_id=UCWfRKs8owsEkERlwO1uwOFw"
+	feed, parsErr := readRSS(&ktotonepravURL)
 	if parsErr != nil {
 		log.Fatal(parsErr.Error())
 	}

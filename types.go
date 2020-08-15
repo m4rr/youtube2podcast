@@ -52,6 +52,7 @@ type Podcast struct {
 	Episodes   []Episode
 	Categories []Category `gorm:"many2many:podcast_categories;"`
 
+	Nickname       string    `gorm:"UNIQUE_INDEX;NOT_NULL"`
 	Title          string    `xml:"title"`
 	Link           string    `xml:"link"`
 	AuthorName     string    `xml:"author.name"`

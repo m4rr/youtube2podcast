@@ -34,6 +34,9 @@ func parseYtRss(ytFeed *rss.Feed) (p Podcast) {
 	p.AuthorName = ytFeed.Nickname
 	p.Cached = time.Now()
 
+	splitID := strings.Split(ytFeed.ID, ":")
+	p.Nickname = splitID[len(splitID)-1]
+
 	// Add categories
 	// catStrings := []string{"Society & Culture/Personal Journals", "Technology/Tech News"}
 	// categories := []Category{}
